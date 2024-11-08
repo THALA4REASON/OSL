@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <string.h>
+
+// Function to perform bubble sort on an array
+void bubblesort(int arr[], int n) {
+    int i, j;
+    for (i = 0; i < n-1; i++) {
+        for (j = 0; j < n-1-i; j++) {
+            if (arr[j] > arr[j+1]) {
+                int temp = arr[j];
+                arr[j] = arr[j+1];
+                arr[j+1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    int i;
+
+    printf("Enter size of Array: ");
+    scanf("%d", &n);
+
+    int arr[n];
+    printf("Enter array elements:\n");
+    for (i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    // Sort the array
+    bubblesort(arr, n);
+
+    printf("Sorted array: \n");
+    for (i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+
+    // Convert array elements to strings for passing through execve
+    char *args[n + 2];  // +1 for program name, +1 for NULL terminator
+    char buffer[10];     // Temporary buffer for array elements
+
+    for (i = 0; i < n; i++) {
+        sprintf(buffer, "%d", arr[i]);
+        args[i + 1] = strdup(buffer);  // Convert integer to string
+    }
+
+    args[0] = "./reverse";  // The name of the child program (reverse.c)
+    args[n + 1] = NULL;     // Null-terminate the argument list
+
+    // Fork a new process
+    pid_t cpid = fork();
+
+    if (cpid > 0) {
+        // Parent process
+        printf("\nParent is running:\nParent ID: %d\nChild ID: %d\n", getppid(), getpid());
+        printf("Parent is waiting for child to complete\n");
+        wait(NULL);
+        printf("\nParent is exiting\n");
+    } else if (cpid == 0) {
+        // Child process
+        printf("\n\nChild is running:\nParent ID: %d\nChild ID: %d\n", getppid(), getpid());
+
+        // Execute the reverse program with sorted array as arguments
+        execve(args[0], args, NULL);
+        perror("execve failed");
+        exit(1);
+    } else {
+        perror("fork failed");
+        exit(1);
+    }
+
+    return 0;
+}
+
